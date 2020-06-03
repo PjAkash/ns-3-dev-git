@@ -29,10 +29,15 @@
 #include "queue-disc.h"
 #include "ns3/net-device-queue-interface.h"
 #include "ns3/queue.h"
+#include "ns3/drop-from-queue.h"
 
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("QueueDisc");
+
+// NS_OBJECT_TEMPLATE_CLASS_DEFINE (Queue,QueueDiscItem);
+// NS_OBJECT_TEMPLATE_CLASS_DEFINE (DropTailQueue,QueueDiscItem);
+// NS_OBJECT_TEMPLATE_CLASS_DEFINE (DropFromQueue,QueueDiscItem);
 
 
 NS_OBJECT_ENSURE_REGISTERED (QueueDiscClass);
