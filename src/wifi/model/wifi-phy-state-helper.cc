@@ -25,6 +25,7 @@
 #include "wifi-phy-state-helper.h"
 #include "wifi-tx-vector.h"
 #include "wifi-phy-listener.h"
+#include "wifi-psdu.h"
 
 namespace ns3 {
 
@@ -165,14 +166,8 @@ WifiPhyStateHelper::GetDelayUntilIdle (void) const
       retval = m_endSwitching - Simulator::Now ();
       break;
     case WifiPhyState::IDLE:
-      retval = Seconds (0);
-      break;
     case WifiPhyState::SLEEP:
-      NS_FATAL_ERROR ("Cannot determine when the device will wake up.");
-      retval = Seconds (0);
-      break;
     case WifiPhyState::OFF:
-      NS_FATAL_ERROR ("Cannot determine when the device will be switched on.");
       retval = Seconds (0);
       break;
     default:
@@ -188,6 +183,12 @@ Time
 WifiPhyStateHelper::GetLastRxStartTime (void) const
 {
   return m_startRx;
+}
+
+Time
+WifiPhyStateHelper::GetLastRxEndTime (void) const
+{
+  return m_endRx;
 }
 
 WifiPhyState
@@ -339,9 +340,17 @@ WifiPhyStateHelper::LogPreviousIdleAndCcaBusyStates (void)
       Time ccaBusyStart = Max (m_endTx, m_endRx);
       ccaBusyStart = Max (ccaBusyStart, m_startCcaBusy);
       ccaBusyStart = Max (ccaBusyStart, m_endSwitching);
-      m_stateLogger (ccaBusyStart, idleStart - ccaBusyStart, WifiPhyState::CCA_BUSY);
+      Time ccaBusyDuration = idleStart - ccaBusyStart;
+      if (ccaBusyDuration.IsStrictlyPositive ())
+        {
+          m_stateLogger (ccaBusyStart, ccaBusyDuration, WifiPhyState::CCA_BUSY);
+        }
     }
-  m_stateLogger (idleStart, now - idleStart, WifiPhyState::IDLE);
+  Time idleDuration = now - idleStart;
+  if (idleDuration.IsStrictlyPositive ())
+    {
+      m_stateLogger (idleStart, idleDuration, WifiPhyState::IDLE);
+    }
 }
 
 void
@@ -453,33 +462,33 @@ WifiPhyStateHelper::SwitchToChannelSwitching (Time switchingDuration)
 }
 
 void
-WifiPhyStateHelper::SwitchFromRxEndOk (Ptr<Packet> packet, double snr, WifiTxVector txVector, std::vector<bool> statusPerMpdu)
+WifiPhyStateHelper::SwitchFromRxEndOk (Ptr<WifiPsdu> psdu, double snr, WifiTxVector txVector, std::vector<bool> statusPerMpdu)
 {
-  NS_LOG_FUNCTION (this << packet << snr << txVector << statusPerMpdu.size () <<
+  NS_LOG_FUNCTION (this << *psdu << snr << txVector << statusPerMpdu.size () <<
                    std::all_of(statusPerMpdu.begin(), statusPerMpdu.end(), [](bool v) { return v; })); //returns true if all true
   NS_ASSERT (statusPerMpdu.size () != 0);
   NS_ASSERT (m_endRx == Simulator::Now ());
-  m_rxOkTrace (packet, snr, txVector.GetMode (), txVector.GetPreambleType ());
+  m_rxOkTrace (psdu->GetPacket (), snr, txVector.GetMode (), txVector.GetPreambleType ());
   NotifyRxEndOk ();
   DoSwitchFromRx ();
   if (!m_rxOkCallback.IsNull ())
     {
-      m_rxOkCallback (packet, snr, txVector, statusPerMpdu);
+      m_rxOkCallback (psdu, snr, txVector, statusPerMpdu);
     }
 
 }
 
 void
-WifiPhyStateHelper::SwitchFromRxEndError (Ptr<Packet> packet, double snr)
+WifiPhyStateHelper::SwitchFromRxEndError (Ptr<WifiPsdu> psdu, double snr)
 {
-  NS_LOG_FUNCTION (this << packet << snr);
+  NS_LOG_FUNCTION (this << *psdu << snr);
   NS_ASSERT (m_endRx == Simulator::Now ());
-  m_rxErrorTrace (packet, snr);
+  m_rxErrorTrace (psdu->GetPacket (), snr);
   NotifyRxEndError ();
   DoSwitchFromRx ();
   if (!m_rxErrorCallback.IsNull ())
     {
-      m_rxErrorCallback (packet);
+      m_rxErrorCallback (psdu);
     }
 }
 
@@ -503,7 +512,6 @@ WifiPhyStateHelper::SwitchMaybeToCcaBusy (Time duration)
       NotifyMaybeCcaBusyStart (duration);
     }
   Time now = Simulator::Now ();
-  m_endCcaBusy = std::max (m_endCcaBusy, now + duration);
   switch (GetState ())
     {
     case WifiPhyState::IDLE:
@@ -518,7 +526,7 @@ WifiPhyStateHelper::SwitchMaybeToCcaBusy (Time duration)
     {
       m_startCcaBusy = now;
     }
-  m_stateLogger (now, duration, WifiPhyState::CCA_BUSY);
+  m_endCcaBusy = std::max (m_endCcaBusy, now + duration);
 }
 
 void
@@ -568,20 +576,15 @@ WifiPhyStateHelper::SwitchFromSleep (Time duration)
 }
 
 void
-WifiPhyStateHelper::SwitchFromRxAbort (bool failure)
+WifiPhyStateHelper::SwitchFromRxAbort (void)
 {
   NS_LOG_FUNCTION (this);
   NS_ASSERT (IsStateRx ());
-  if (failure)
-    {
-      NotifyRxEndError ();
-    }
-  else
-    {
-      NotifyRxEndOk ();
-    }
+  NotifyRxEndOk ();
   DoSwitchFromRx ();
-  NS_ASSERT (!IsStateRx ());
+  m_endCcaBusy = Simulator::Now ();
+  NotifyMaybeCcaBusyStart (Seconds (0));
+  NS_ASSERT (IsStateIdle ());
 }
 
 void

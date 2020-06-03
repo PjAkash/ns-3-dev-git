@@ -270,6 +270,10 @@ LenaFdTbfqFfMacSchedulerTestCase1::DoRun (void)
     }
 
   Config::SetDefault ("ns3::LteHelper::UseIdealRrc", BooleanValue (true));
+  Config::SetDefault ("ns3::MacStatsCalculator::DlOutputFilename", StringValue (CreateTempDirFilename ("DlMacStats.txt")));
+  Config::SetDefault ("ns3::MacStatsCalculator::UlOutputFilename", StringValue (CreateTempDirFilename ("UlMacStats.txt")));
+  Config::SetDefault ("ns3::RadioBearerStatsCalculator::DlRlcOutputFilename", StringValue (CreateTempDirFilename ("DlRlcStats.txt")));
+  Config::SetDefault ("ns3::RadioBearerStatsCalculator::UlRlcOutputFilename", StringValue (CreateTempDirFilename ("UlRlcStats.txt")));
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
   Ptr<PointToPointEpcHelper>  epcHelper = CreateObject<PointToPointEpcHelper> ();
@@ -430,7 +434,7 @@ LenaFdTbfqFfMacSchedulerTestCase1::DoRun (void)
   Simulator::Run ();
 
   /**
-   * Check that the downlink assignation is done in a "token bank fair queue" manner
+   * Check that the downlink assignment is done in a "token bank fair queue" manner
    */
 
   NS_LOG_INFO ("DL - Test with " << m_nUser << " user(s) at distance " << m_dist);
@@ -452,7 +456,7 @@ LenaFdTbfqFfMacSchedulerTestCase1::DoRun (void)
     }
 
   /**
-  * Check that the uplink assignation is done in a "round robin" manner
+  * Check that the uplink assignment is done in a "round robin" manner
   */
 
   NS_LOG_INFO ("UL - Test with " << m_nUser << " user(s) at distance " << m_dist);
@@ -520,7 +524,10 @@ LenaFdTbfqFfMacSchedulerTestCase2::DoRun (void)
     }
 
   Config::SetDefault ("ns3::LteHelper::UseIdealRrc", BooleanValue (true));
-
+  Config::SetDefault ("ns3::MacStatsCalculator::DlOutputFilename", StringValue (CreateTempDirFilename ("DlMacStats.txt")));
+  Config::SetDefault ("ns3::MacStatsCalculator::UlOutputFilename", StringValue (CreateTempDirFilename ("UlMacStats.txt")));
+  Config::SetDefault ("ns3::RadioBearerStatsCalculator::DlRlcOutputFilename", StringValue (CreateTempDirFilename ("DlRlcStats.txt")));
+  Config::SetDefault ("ns3::RadioBearerStatsCalculator::UlRlcOutputFilename", StringValue (CreateTempDirFilename ("UlRlcStats.txt")));
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
   Ptr<PointToPointEpcHelper>  epcHelper = CreateObject<PointToPointEpcHelper> ();
@@ -680,7 +687,7 @@ LenaFdTbfqFfMacSchedulerTestCase2::DoRun (void)
   Simulator::Run ();
 
   /**
-   * Check that the downlink assignation is done in a "token bank fair queue" manner
+   * Check that the downlink assignment is done in a "token bank fair queue" manner
    */
 
   NS_LOG_INFO ("DL - Test with " << m_nUser << " user(s)");

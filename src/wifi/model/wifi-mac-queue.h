@@ -34,7 +34,7 @@ class QosBlockedDestinations;
 // The following explicit template instantiation declaration prevents modules
 // including this header file from implicitly instantiating Queue<WifiMacQueueItem>.
 // This would cause python examples using wifi to crash at runtime with the
-// following error message: "Trying to allocate twice the same uid:
+// following error message: "Trying to allocate twice the same UID:
 // ns3::Queue<WifiMacQueueItem>"
 extern template class Queue<WifiMacQueueItem>;
 
@@ -78,18 +78,6 @@ public:
   using Queue<WifiMacQueueItem>::begin;
   using Queue<WifiMacQueueItem>::end;
 
-  /**
-   * \brief Set the maximum size of this queue
-   *
-   * Trying to set a null size has no effect.
-   *
-   * \param size the maximum size
-   */
-  void SetMaxQueueSize (QueueSize size);
-  /**
-   * \return the maximum size of this queue
-   */
-  QueueSize GetMaxQueueSize (void) const;
   /**
    * Set the maximum delay before the packet is discarded.
    *
@@ -144,17 +132,17 @@ public:
   Ptr<WifiMacQueueItem> DequeueByAddress (Mac48Address dest);
   /**
    * Search and return, if present in the queue, the first packet having the
-   * tid equal to <i>tid</i>.
+   * TID equal to <i>tid</i>.
    * This method removes the packet from the queue.
    *
-   * \param tid the given tid
+   * \param tid the given TID
    *
    * \return the packet
    */
   Ptr<WifiMacQueueItem> DequeueByTid (uint8_t tid);
   /**
    * Search and return, if present in the queue, the first packet having the
-   * address indicated by <i>type</i> equal to <i>addr</i>, and tid
+   * address indicated by <i>type</i> equal to <i>addr</i>, and TID
    * equal to <i>tid</i>. This method removes the packet from the queue.
    * It is typically used by ns3::QosTxop in order to perform correct MSDU
    * aggregation (A-MSDU).
@@ -168,14 +156,14 @@ public:
                                                 Mac48Address dest);
   /**
    * Return first available packet for transmission. A packet could be no available
-   * if it is a QoS packet with a tid and an address1 fields equal to <i>tid</i> and <i>addr</i>
+   * if it is a QoS packet with a TID and an address1 fields equal to <i>tid</i> and <i>addr</i>
    * respectively that index a pending agreement in the BlockAckManager object.
    * So that packet must not be transmitted until reception of an ADDBA response frame from station
    * addressed by <i>addr</i>. This method removes the packet from queue.
    *
-   * \param blockedPackets
+   * \param blockedPackets the destination address & TID pairs that are waiting for a BlockAck response
    *
-   * \return packet
+   * \return the packet
    */
   Ptr<WifiMacQueueItem> DequeueFirstAvailable (const Ptr<QosBlockedDestinations> blockedPackets = nullptr);
   /**
@@ -208,7 +196,7 @@ public:
   ConstIterator PeekByAddress (Mac48Address dest, ConstIterator pos = EMPTY) const;
   /**
    * Search and return, if present in the queue, the first packet having the
-   * tid equal to <i>tid</i>. If <i>pos</i> is a valid iterator, the search starts
+   * TID equal to <i>tid</i>. If <i>pos</i> is a valid iterator, the search starts
    * from the packet pointed to by the given iterator.
    * This method does not remove the packet from the queue.
    *
@@ -220,7 +208,7 @@ public:
   ConstIterator PeekByTid (uint8_t tid, ConstIterator pos = EMPTY) const;
   /**
    * Search and return, if present in the queue, the first packet having the
-   * receiver address equal to <i>dest</i>, and tid equal to <i>tid</i>.
+   * receiver address equal to <i>dest</i>, and TID equal to <i>tid</i>.
    * If <i>pos</i> is a valid iterator, the search starts from the packet pointed
    * to by the given iterator. This method does not remove the packet from the queue.
    * It is typically used by ns3::QosTxop in order to perform correct MSDU aggregation
@@ -236,7 +224,7 @@ public:
   /**
    * Return first available packet for transmission. The packet is not removed from queue.
    *
-   * \param blockedPackets
+   * \param blockedPackets the destination address & TID pairs that are waiting for a BlockAck response
    * \param pos the iterator pointing to the packet the search starts from
    *
    * \return an iterator pointing to the peeked packet
@@ -280,7 +268,7 @@ public:
    */
   uint32_t GetNPacketsByAddress (Mac48Address dest);
   /**
-   * Return the number of QoS packets having tid equal to <i>tid</i> and
+   * Return the number of QoS packets having TID equal to <i>tid</i> and
    * destination address equal to <i>dest</i>.
    *
    * \param tid the given TID
@@ -313,6 +301,7 @@ public:
 
   static const ConstIterator EMPTY;         //!< Invalid iterator to signal an empty queue
 
+
 private:
   /**
    * Remove the item pointed to by the iterator <i>it</i> if it has been in the
@@ -324,10 +313,9 @@ private:
    */
   bool TtlExceeded (ConstIterator &it);
 
-  QueueSize m_maxSize;                      //!< max queue size
   Time m_maxDelay;                          //!< Time to live for packets in the queue
   DropPolicy m_dropPolicy;                  //!< Drop behavior of queue
-  mutable bool m_expiredPacketsPresent;     //!> True if expired packets are in the queue
+  mutable bool m_expiredPacketsPresent;     //!< True if expired packets are in the queue
 
   /// Traced callback: fired when a packet is dropped due to lifetime expiration
   TracedCallback<Ptr<const WifiMacQueueItem> > m_traceExpired;

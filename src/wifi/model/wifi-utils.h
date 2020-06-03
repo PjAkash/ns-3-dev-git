@@ -44,9 +44,9 @@ double DbmToW (double dbm);
 /**
  * Convert from dB to ratio.
  *
- * \param db
+ * \param db the value in dB
  *
- * \return ratio
+ * \return ratio in linear scale
  */
 double DbToRatio (double db);
 /**
@@ -60,9 +60,9 @@ double WToDbm (double w);
 /**
  * Convert from ratio to dB.
  *
- * \param ratio
+ * \param ratio the ratio in linear scale
  *
- * \return dB
+ * \return the value in dB
  */
 double RatioToDb (double ratio);
 /**
@@ -76,18 +76,18 @@ bool Is2_4Ghz (double frequency);
  */
 bool Is5Ghz (double frequency);
 /**
- * Convert the guard interval to nanoseconds based on the wifimode.
+ * Convert the guard interval to nanoseconds based on the WifiMode.
  *
- * \param mode the wifimode
+ * \param mode the WifiMode
  * \param device pointer to the WifiNetDevice object
  *
  * \return the guard interval duration in nanoseconds
  */
 uint16_t ConvertGuardIntervalToNanoSeconds (WifiMode mode, const Ptr<WifiNetDevice> device);
 /**
- * Convert the guard interval to nanoseconds based on the wifimode.
+ * Convert the guard interval to nanoseconds based on the WifiMode.
  *
- * \param mode the wifimode
+ * \param mode the WifiMode
  * \param htShortGuardInterval whether HT/VHT short guard interval is enabled
  * \param heGuardInterval the HE guard interval duration
  *
@@ -99,7 +99,7 @@ uint16_t ConvertGuardIntervalToNanoSeconds (WifiMode mode, bool htShortGuardInte
  *
  * \param modulation the modulation selected for the transmission
  * \param useShortPreamble whether short preamble should be used
- * \param useGreenfield whether HT greenfield should be used
+ * \param useGreenfield whether HT Greenfield should be used
  *
  * \return the preamble to be used for the transmission
  */
@@ -126,28 +126,35 @@ uint16_t GetChannelWidthForTransmission (WifiMode mode, uint16_t maxSupportedCha
  */
 bool IsAllowedControlAnswerModulationClass (WifiModulationClass modClassReq, WifiModulationClass modClassAnswer);
 /**
- * Return the total ACK size (including FCS trailer).
+ * Return the total Ack size (including FCS trailer).
  *
- * \return the total ACK size
+ * \return the total Ack size in bytes
  */
 uint32_t GetAckSize (void);
 /**
- * Return the total Block ACK size (including FCS trailer).
+ * Return the total BlockAck size (including FCS trailer).
  *
- * \param type the Block ACK type
- * \return the total Block ACK size
+ * \param type the BlockAck type
+ * \return the total BlockAck size in bytes
  */
 uint32_t GetBlockAckSize (BlockAckType type);
 /**
+ * Return the total BlockAckRequest size (including FCS trailer).
+ *
+ * \param type the BlockAckRequest type
+ * \return the total BlockAckRequest size in bytes
+ */
+uint32_t GetBlockAckRequestSize (BlockAckType type);
+/**
  * Return the total RTS size (including FCS trailer).
  *
- * \return the total RTS size
+ * \return the total RTS size in bytes
  */
 uint32_t GetRtsSize (void);
 /**
  * Return the total CTS size (including FCS trailer).
  *
- * \return the total CTS size
+ * \return the total CTS size in bytes
  */
 uint32_t GetCtsSize (void);
 /**
@@ -162,7 +169,7 @@ bool IsInWindow (uint16_t seq, uint16_t winstart, uint16_t winsize);
 /**
  * Add FCS trailer to a packet.
  *
- * \param packet
+ * \param packet the packet to add a trailer to
  */
 void AddWifiMacTrailer (Ptr<Packet> packet);
 /**
@@ -175,14 +182,6 @@ void AddWifiMacTrailer (Ptr<Packet> packet);
  * \return the total packet size
  */
 uint32_t GetSize (Ptr<const Packet> packet, const WifiMacHeader *hdr, bool isAmpdu);
-/**
- * \param packet the packet to check
- * \returns true if packet is an A-MPDU
- *
- * This method checks if the packet is an A-MPDU by looking for A-MPDU subframe headers.
- */
-bool IsAmpdu (Ptr<const Packet> packet);
-
 /**
  * Get the maximum PPDU duration (see Section 10.14 of 802.11-2016) for
  * the PHY layers defining the aPPDUMaxTime characteristic (HT, VHT and HE).

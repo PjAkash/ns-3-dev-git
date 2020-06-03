@@ -32,7 +32,7 @@ class WifiMacQueueItem;
 
 /**
  * \ingroup wifi
- * Maintains the state and information about transmitted MPDUs with ack policy block ack
+ * Maintains the state and information about transmitted MPDUs with Ack Policy set to Block Ack
  * for an originator station. The state diagram is as follows:
  *
    \verbatim
@@ -59,6 +59,7 @@ class OriginatorBlockAckAgreement : public BlockAckAgreement
 {
   /// allow BlockAckManager class access
   friend class BlockAckManager;
+  /// allow OriginatorBlockAckWindowTest class access
   friend class ::OriginatorBlockAckWindowTest;
 
 
@@ -81,14 +82,14 @@ public:
   *
   *  ESTABLISHED:
   *    The block ack is active and all packets relative to this agreement are transmitted
-  *    with ack policy set to block ack.
+  *    with Ack Policy set to Block Ack.
   *
   *  NO_REPLY
   *    No reply after an ADDBA request. In this state the originator will send the rest of packets
   *    in queue using normal MPDU.
   *
   *  RESET
-  *    A transient state to mark the agreement for reinitialzation after failed ADDBA request.
+  *    A transient state to mark the agreement for reinitialization after failed ADDBA request.
   *    Since it is a temporary state, it is not included in the state diagram above. In this
   *    state the next transmission will be treated as if the BA agreement is not created yet.
   *
@@ -198,8 +199,6 @@ private:
   /**
    * Advance the transmit window so that the starting sequence number is the
    * nearest unacknowledged MPDU.
-   *
-   * \param newStartingSeq the new starting sequence number
    */
   void AdvanceTxWindow (void);
 

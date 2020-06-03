@@ -35,9 +35,9 @@ namespace ns3 {
  * A Practical Approach</i>, by M. Lacage, M.H. Manshaei, and
  * T. Turletti.
  *
- * This RAA does not support HT, VHT nor HE modes and will error
+ * This RAA does not support HT modes and will error
  * exit if the user tries to configure this RAA with a Wi-Fi MAC
- * that has VhtSupported, HtSupported or HeSupported set.
+ * that supports 802.11n or higher.
  */
 class AarfWifiManager : public WifiRemoteStationManager
 {
@@ -69,11 +69,11 @@ private:
   WifiTxVector DoGetRtsTxVector (WifiRemoteStation *station);
   bool IsLowLatency (void) const;
 
-  uint32_t m_minTimerThreshold; ///< minimum timer threshold
+  uint32_t m_minTimerThreshold;   ///< minimum timer threshold
   uint32_t m_minSuccessThreshold; ///< minimum success threshold
-  double m_successK; ///< Multiplication factor for the success threshold
+  double m_successK;              ///< Multiplication factor for the success threshold
   uint32_t m_maxSuccessThreshold; ///< maximum success threshold
-  double m_timerK; ///< Multiplication factor for the timer threshold
+  double m_timerK;                ///< Multiplication factor for the timer threshold
 
   TracedValue<uint64_t> m_currentRate; //!< Trace rate changes
 };

@@ -1434,7 +1434,7 @@ LteUePhy::DoSynchronizeWithEnb (uint16_t cellId)
 }
 
 void
-LteUePhy::DoSetDlBandwidth (uint8_t dlBandwidth)
+LteUePhy::DoSetDlBandwidth (uint16_t dlBandwidth)
 {
   NS_LOG_FUNCTION (this << (uint32_t) dlBandwidth);
   if (m_dlBandwidth != dlBandwidth or !m_dlConfigured)
@@ -1465,7 +1465,7 @@ LteUePhy::DoSetDlBandwidth (uint8_t dlBandwidth)
 
 
 void 
-LteUePhy::DoConfigureUplink (uint32_t ulEarfcn, uint8_t ulBandwidth)
+LteUePhy::DoConfigureUplink (uint32_t ulEarfcn, uint16_t ulBandwidth)
 {
   m_ulEarfcn = ulEarfcn;
   m_ulBandwidth = ulBandwidth;
@@ -1732,10 +1732,10 @@ LteUePhy::SetTxModeGain (uint8_t txMode, double gain)
 
 
 void
-LteUePhy::ReceiveLteDlHarqFeedback (DlInfoListElement_s m)
+LteUePhy::EnqueueDlHarqFeedback (DlInfoListElement_s m)
 {
   NS_LOG_FUNCTION (this);
-  // generate feedback to eNB and send it through ideal PUCCH
+  // get the feedback from LteSpectrumPhy and send it through ideal PUCCH to eNB
   Ptr<DlHarqFeedbackLteControlMessage> msg = Create<DlHarqFeedbackLteControlMessage> ();
   msg->SetDlHarqFeedback (m);
   SetControlMessages (msg);

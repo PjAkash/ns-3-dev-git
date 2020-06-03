@@ -16,7 +16,7 @@
  * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
  */
 
-// This example is used to validate NIST and YANS error rate models for VHT rates.
+// This example is used to validate NIST and YANS error rate models for HE rates.
 //
 // It outputs plots of the Frame Success Rate versus the Signal-to-noise ratio for
 // both NIST and YANS error rate models and for every HE MCS value.
@@ -51,7 +51,7 @@ int main (int argc, char *argv[])
   modes.push_back ("HeMcs10");
   modes.push_back ("HeMcs11");
 
-  CommandLine cmd;
+  CommandLine cmd (__FILE__);
   cmd.AddValue ("FrameSize", "The frame size", FrameSize);
   cmd.Parse (argc, argv);
 

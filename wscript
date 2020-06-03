@@ -11,6 +11,8 @@ import re
 import shlex
 import subprocess
 import textwrap
+import fileinput
+import glob
 
 from utils import read_config_file
 
@@ -108,20 +110,12 @@ def dist_hook():
 
 # Print the sorted list of module names in columns.
 def print_module_names(names):
-    # Sort the list of module names.
-    names.sort()
-
-    # Print the list of module names in 3 columns.
-    i = 1
-    for name in names:
-        print(name.ljust(25), end=' ')
-        if i == 3:
-                print()
-                i = 0
-        i = i+1
-
-    if i != 1:
-        print()
+    """Print the list of module names in 3 columns."""
+    for i, name in enumerate(sorted(names)):
+        if i % 3 == 2 or i == len(names) - 1:
+          print(name)
+        else:
+          print(name.ljust(25), end=' ')
 
 # return types of some APIs differ in Python 2/3 (type string vs class bytes)
 # This method will decode('utf-8') a byte object in Python 3, 
@@ -170,9 +164,15 @@ def options(opt):
 
     opt.add_option('--lcov-report',
                    help=('Generate a code coverage report '
-                         '(use this option at build time, not in configure)'),
+                         '(use this option after configuring with --enable-gcov and running a program)'),
                    action="store_true", default=False,
                    dest='lcov_report')
+
+    opt.add_option('--lcov-zerocounters',
+                   help=('Zero the lcov counters'
+                         '(use this option before rerunning a program, when generating repeated lcov reports)'),
+                   action="store_true", default=False,
+                   dest='lcov_zerocounters')
 
     opt.add_option('--run',
                    help=('Run a locally built program; argument can be a program name,'
@@ -244,6 +244,10 @@ def options(opt):
                          'but do not wait for ns-3 to finish the full build.'),
                    action="store_true", default=False,
                    dest='doxygen_no_build')
+    opt.add_option('--docset',
+                   help=('Create Docset, without building. This requires the docsetutil tool from Xcode 9.2 or earlier. See Bugzilla 2196 for more details.'),
+                   action="store_true", default=False,
+                   dest="docset_build")
     opt.add_option('--enable-des-metrics',
                    help=('Log all events in a json file with the name of the executable (which must call CommandLine::Parse(argc, argv)'),
                    action="store_true", default=False,
@@ -546,8 +550,6 @@ def configure(conf):
                 raise WafError('Exiting because the ' + not_built + ' module can not be built and it was the only one enabled.')
         elif not_built_name in conf.env['NS3_ENABLED_CONTRIBUTED_MODULES']:
             conf.env['NS3_ENABLED_CONTRIBUTED_MODULES'].remove(not_built_name)
-
-    conf.recurse('src/mpi')
 
     # for suid bits
     try:
@@ -1056,7 +1058,7 @@ def build(bld):
         bld.env['PRINT_BUILT_MODULES_AT_END'] = False 
 
     if Options.options.doxygen_no_build:
-        _doxygen(bld)
+        _doxygen(bld, skip_pid=True)
         raise SystemExit(0)
 
     if Options.options.run_no_build:
@@ -1083,7 +1085,6 @@ def _cleandocs():
     _cleandir('doc/manual/build')
     _cleandir('doc/manual/source-temp')
     _cleandir('doc/tutorial/build')
-    _cleandir('doc/tutorial-pt-br/build')
     _cleandir('doc/models/build')
     _cleandir('doc/models/source-temp')
 
@@ -1140,6 +1141,9 @@ def shutdown(ctx):
 
     if Options.options.lcov_report:
         lcov_report(bld)
+
+    if Options.options.lcov_zerocounters:
+        lcov_zerocounters(bld)
 
     if Options.options.run:
         wutils.run_program(Options.options.run, env, wutils.get_command_template(env),
@@ -1223,15 +1227,9 @@ class Ns3ShellContext(Context.Context):
         wutils.run_argv([shell], env, os_env)
 
 
-def _doxygen(bld):
+def _print_introspected_doxygen(bld):
     env = wutils.bld.env
     proc_env = wutils.get_proc_env()
-
-    if not env['DOXYGEN']:
-        Logs.error("waf configure did not detect doxygen in the system -> cannot build api docs.")
-        raise SystemExit(1)
-        return
-
     try:
         program_obj = wutils.find_program('print-introspected-doxygen', env)
     except ValueError: 
@@ -1247,6 +1245,8 @@ def _doxygen(bld):
                    "generating doxygen docs...")
         raise SystemExit(1)
 
+    Logs.info("Running print-introspected-doxygen")
+
     # Create a header file with the introspected information.
     doxygen_out = open(os.path.join('doc', 'introspected-doxygen.h'), 'w')
     if subprocess.Popen([prog], stdout=doxygen_out, env=proc_env).wait():
@@ -1259,12 +1259,115 @@ def _doxygen(bld):
         raise SystemExit(1)
     text_out.close()
 
+    # Gather the CommandLine doxy
+    # test.py appears not to create or keep the output directory
+    # if no real tests are run, so we just stuff all the
+    # .command-line output files into testpy-output/
+    # NS_COMMANDLINE_INTROSPECTION=".." test.py --nowaf --constrain=example
+    Logs.info("Running CommandLine introspection")
+    proc_env['NS_COMMANDLINE_INTROSPECTION'] = '..'
+    subprocess.run(["test.py", "--nowaf", "--constrain=example"],
+                   env=proc_env, stdout=subprocess.DEVNULL)
+    
+    doxygen_out = os.path.join('doc', 'introspected-command-line.h')
+    try:
+        os.remove(doxygen_out)
+    except OSError as e:
+        pass
+
+    with open(doxygen_out, 'w') as out_file:
+        lines="""
+/* This file is automatically generated by
+CommandLine::PrintDoxygenUsage() from the CommandLine configuration
+in various example programs.  Do not edit this file!  Edit the
+CommandLine configuration in those files instead.
+*/\n
+"""
+        out_file.write(lines)
+    out_file.close()
+
+    with open(doxygen_out,'a') as outfile:
+        for in_file in glob.glob('testpy-output/*.command-line'):
+            with open(in_file,'r') as infile:
+                outfile.write(infile.read())
+                
+def _doxygen(bld, skip_pid=False):
+    env = wutils.bld.env
+    proc_env = wutils.get_proc_env()
+
+    if not env['DOXYGEN']:
+        Logs.error("waf configure did not detect doxygen in the system -> cannot build api docs.")
+        raise SystemExit(1)
+        return
+
+    if not skip_pid:
+        _print_introspected_doxygen(bld)
+
     _getVersion()
     doxygen_config = os.path.join('doc', 'doxygen.conf')
     if subprocess.Popen(env['DOXYGEN'] + [doxygen_config]).wait():
         Logs.error("Doxygen build returned an error.")
         raise SystemExit(1)
 
+def _docset(bld):
+    # Get the doxygen config
+    doxyfile = os.path.join('doc', 'doxygen.conf')
+    Logs.info("docset: reading " + doxyfile)
+    doxygen_config = open(doxyfile, 'r')
+    doxygen_config_contents = doxygen_config.read()
+    doxygen_config.close()
+
+    # Create the output directory
+    docset_path = os.path.join('doc', 'docset')
+    Logs.info("docset: checking for output directory " + docset_path)
+    if not os.path.exists(docset_path):
+        Logs.info("docset: creating output directory " + docset_path)
+        os.mkdir(docset_path)
+
+    doxyfile = os.path.join('doc', 'doxygen.docset.conf')
+    doxygen_config = open(doxyfile, 'w')
+    Logs.info("docset: writing doxygen conf " + doxyfile)
+    doxygen_config.write(doxygen_config_contents)
+    doxygen_config.write(
+        """
+        HAVE_DOT = NO
+        GENERATE_DOCSET = YES
+        DISABLE_INDEX = YES
+        SEARCHENGINE = NO
+        GENERATE_TREEVIEW = NO
+        OUTPUT_DIRECTORY=""" + docset_path + "\n"
+        )
+    doxygen_config.close()
+
+    # Run Doxygen manually, so as to avoid build
+    Logs.info("docset: running doxygen")
+    env = wutils.bld.env
+    _getVersion()
+    if subprocess.Popen(env['DOXYGEN'] + [doxyfile]).wait():
+        Logs.error("Doxygen docset build returned an error.")
+        raise SystemExit(1)
+
+    # Build docset
+    docset_path = os.path.join(docset_path, 'html')
+    Logs.info("docset: Running docset Make")
+    if subprocess.Popen(["make"], cwd=docset_path).wait():
+        Logs.error("Docset make returned and error.")
+        raise SystemExit(1)
+
+    # Additional steps from
+    #   https://github.com/Kapeli/Dash-User-Contributions/tree/master/docsets/ns-3
+    docset_out = os.path.join(docset_path, 'org.nsnam.ns3.docset')
+    icons = os.path.join('doc', 'ns3_html_theme', 'static')
+    shutil.copy(os.path.join(icons, 'ns-3-bars-16x16.png'),
+                os.path.join(docset_out, 'icon.png'))
+    shutil.copy(os.path.join(icons, 'ns-3-bars-32x32.png'),
+                os.path.join(docset_out, 'icon@x2.png'))
+    shutil.copy(os.path.join(docset_path, 'Info.plist'),
+                os.path.join(docset_out, 'Contents'))
+    shutil.move(docset_out, os.path.join('doc', 'ns-3.docset'))
+
+    print("Docset built successfully.")
+    
 
 def _getVersion():
     """update the ns3_version.js file, when building documentation"""
@@ -1301,7 +1404,7 @@ class Ns3SphinxContext(Context.Context):
 
     def execute(self):
         _getVersion()
-        for sphinxdir in ["manual", "models", "tutorial", "tutorial-pt-br"] :
+        for sphinxdir in ["manual", "models", "tutorial"] :
             self.sphinx_build(os.path.join("doc", sphinxdir))
      
 
@@ -1321,7 +1424,20 @@ def lcov_report(bld):
     if not env['GCOV_ENABLED']:
         raise WafError("project not configured for code coverage;"
                        " reconfigure with --enable-gcov")
-
+    try:
+        subprocess.call(["lcov", "--help"], stdout=subprocess.DEVNULL)
+    except OSError as e:
+        if e.errno == os.errno.ENOENT:
+            raise WafError("Error: lcov program not found")
+        else:
+            raise
+    try:
+        subprocess.call(["genhtml", "--help"], stdout=subprocess.DEVNULL)
+    except OSError as e:
+        if e.errno == os.errno.ENOENT:
+            raise WafError("Error: genhtml program not found")
+        else:
+            raise
     os.chdir(out)
     try:
         lcov_report_dir = 'lcov-report'
@@ -1332,15 +1448,34 @@ def lcov_report(bld):
             raise SystemExit(1)
 
         info_file = os.path.join(lcov_report_dir, 'report.info')
-        lcov_command = "../utils/lcov/lcov -c -d . -o " + info_file
+        lcov_command = "lcov -c -d . -o " + info_file
         lcov_command += " -b " + os.getcwd()
         if subprocess.Popen(lcov_command, shell=True).wait():
             raise SystemExit(1)
 
-        genhtml_command = "../utils/lcov/genhtml -o " + lcov_report_dir
+        genhtml_command = "genhtml -o " + lcov_report_dir
         genhtml_command += " " + info_file
         if subprocess.Popen(genhtml_command, shell=True).wait():
             raise SystemExit(1)
     finally:
         os.chdir("..")
 
+def lcov_zerocounters(bld):
+    env = bld.env
+
+    if not env['GCOV_ENABLED']:
+        raise WafError("project not configured for code coverage;"
+                       " reconfigure with --enable-gcov")
+    try:
+        subprocess.call(["lcov", "--help"], stdout=subprocess.DEVNULL)
+    except OSError as e:
+        if e.errno == os.errno.ENOENT:
+            raise WafError("Error: lcov program not found")
+        else:
+            raise
+
+    os.chdir(out)
+    lcov_clear_command = "lcov -d . --zerocounters"
+    if subprocess.Popen(lcov_clear_command, shell=True).wait():
+        raise SystemExit(1)
+    os.chdir("..")

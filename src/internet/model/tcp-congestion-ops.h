@@ -19,8 +19,8 @@
 #ifndef TCPCONGESTIONOPS_H
 #define TCPCONGESTIONOPS_H
 
-#include "ns3/tcp-socket-state.h"
-#include "ns3/tcp-rate-ops.h"
+#include "tcp-rate-ops.h"
+#include "tcp-socket-state.h"
 
 namespace ns3 {
 
@@ -75,6 +75,16 @@ public:
   virtual std::string GetName () const = 0;
 
   /**
+   * \brief Set configuration required by congestion control algorithm
+   *
+   * \param tcb internal congestion state
+   */
+  virtual void Init (Ptr<TcpSocketState> tcb)
+    {
+      NS_UNUSED (tcb);
+    }
+
+  /**
    * \brief Get the slow start threshold after a loss event
    *
    * Is guaranteed that the congestion control state (\p TcpAckState_t) is
@@ -94,7 +104,7 @@ public:
   /**
    * \brief Congestion avoidance algorithm implementation
    *
-   * Mimic the function \p cong_avoid in Linux. New segments have been ACKed,
+   * Mimic the function \pname{cong_avoid} in Linux. New segments have been ACKed,
    * and the congestion control duty is to update the window.
    *
    * The function is allowed to change directly cWnd and/or ssThresh.
@@ -122,7 +132,7 @@ public:
   /**
    * \brief Trigger events/calculations specific to a congestion state
    *
-   * This function mimics the notification function \p set_state in Linux.
+   * This function mimics the notification function \pname{set_state} in Linux.
    * The function does not change the congestion state in the tcb; it notifies
    * the congestion control algorithm that this state is about to be changed.
    * The tcb->m_congState variable must be separately set; for example:
@@ -141,7 +151,7 @@ public:
   /**
    * \brief Trigger events/calculations on occurrence of congestion window event
    *
-   * This function mimics the function \p cwnd_event in Linux.
+   * This function mimics the function \pname{cwnd_event} in Linux.
    * The function is called in case of congestion window events.
    *
    * \param tcb internal congestion state
@@ -177,6 +187,13 @@ public:
   virtual void CongControl (Ptr<TcpSocketState> tcb,
                             const TcpRateOps::TcpRateConnection &rc,
                             const TcpRateOps::TcpRateSample &rs);
+
+  /**
+   * \brief Reduces congestion window on receipt of ECN Echo Flag
+   *
+   * \param tcb internal congestion state
+   */
+  virtual void ReduceCwnd (Ptr<TcpSocketState> tcb) = 0;
 
   // Present in Linux but not in ns-3 yet:
   /* call when ack arrives (optional) */
@@ -226,7 +243,7 @@ public:
   virtual void IncreaseWindow (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked);
   virtual uint32_t GetSsThresh (Ptr<const TcpSocketState> tcb,
                                 uint32_t bytesInFlight);
-
+  virtual void ReduceCwnd (Ptr<TcpSocketState> tcb);
   virtual Ptr<TcpCongestionOps> Fork ();
 
 protected:

@@ -74,7 +74,7 @@ There are presently three **MAC high models** that provide for the three
 parent ``ns3::RegularWifiMac``, is not discussed here) Wi-Fi topological
 elements - Access Point (AP) (``ns3::ApWifiMac``), 
 non-AP Station (STA) (``ns3::StaWifiMac``), and STA in an Independent
-Basic Service Set (IBSS - also commonly referred to as an ad hoc
+Basic Service Set (IBSS) - also commonly referred to as an ad hoc
 network (``ns3::AdhocWifiMac``).
 
 The simplest of these is ``ns3::AdhocWifiMac``, which implements a
@@ -137,7 +137,7 @@ are typically three main components to packet reception:
 base interface defined in the ``ns3::WifiPhy`` class.  The YansWifiPhy
 class has been the only physical layer model until recently; the model
 implemented there is described in a paper entitled
-`Yet Another Network Simulator <http://cutebugs.net/files/wns2-yans.pdf>`_
+`Yet Another Network Simulator <https://dl.acm.org/doi/pdf/10.1145/1190455.1190467?download=true>`_
 The acronym *Yans* derives from this paper title.  The SpectrumWifiPhy
 class is an alternative implementation based on the Spectrum framework
 used for other |ns3| wireless models.  Spectrum allows a fine-grained
@@ -179,7 +179,7 @@ The following details pertain to the physical layer and channel models:
 
 At the MAC layer, most of the main functions found in deployed Wi-Fi
 equipment for 802.11a/b/e/g/n/ac/ax are implemented, but there are scattered instances
-where some limitations in the models exist. Support for 802.11n and ac is evolving.
+where some limitations in the models exist. Support for 802.11n, ac and ax is evolving.
 
 Some implementation choices that are not imposed by the standard are listed below:
 
@@ -221,7 +221,7 @@ delay model also added. Packets sent from a ``ns3::YansWifiPhy`` object
 onto the channel with a particular signal power, are copied to all of the
 other ``ns3::YansWifiPhy`` objects after the signal power is reduced due
 to the propagation loss model(s), and after a delay corresponding to
-transmission (serialization) delay and propagation delay due 
+transmission (serialization) delay and propagation delay due to
 any channel propagation delay model (typically due to speed-of-light
 delay between the positions of the devices).
 
@@ -237,7 +237,7 @@ WifiPhy and related models
 
 The ``ns3::WifiPhy`` is an abstract base class representing the 802.11
 physical layer functions.  Packets passed to this object (via a
-``SendPacket()`` method are sent over a channel object, and
+``SendPacket()`` method) are sent over a channel object, and
 upon reception, the receiving PHY object decides (based on signal power
 and interference) whether the packet was successful or not.  This class
 also provides a number of callbacks for notifications of physical layer
@@ -339,7 +339,9 @@ packet to schedule this.  The second event to schedule is
 have been received and the payload is about to start.
 
 The next event at ``StartReceivePayload ()`` checks, using the interference
-helper and error model, whether the header was successfully decoded. 
+helper and error model, whether the header was successfully decoded, and if so,
+a ``PhyRxPayloadBegin`` callback (equivalent to the PHY-RXSTART primitive)
+is triggered.
 The PHY header is often transmitted
 at a lower modulation rate than is the payload.  The portion of the packet
 corresponding to the PHY header is evaluated for probability of error
@@ -368,12 +370,12 @@ all such signals is compared against an energy detection threshold to
 determine whether the PHY should enter a CCA_BUSY state. 
 The ``WifiPhy::CcaEdThreshold`` attribute 
 corresponds to what the standard calls the "ED threshold" for CCA Mode 1.
-In section 16.4.8.5:  "CCA Mode 1: Energy above threshold. CCA shall report 
-a busy medium upon detection of any energy above the ED threshold."
-By default, this value is set to the -62 dBm level specified in the standard
-for 20 MHz channels.  When using ``YansWifiPhy``, there are no non-Wi-Fi
-signals, so it is unlikely that this attribute would play much of a role
-in Yans wifi models if left at the default value, but if there is a strong
+In section 16.4.8.5 in the 802.11-2012 standard: "CCA Mode 1: Energy above
+threshold. CCA shall report a busy medium upon detection of any energy above
+the ED threshold." By default, this value is set to the -62 dBm level specified
+in the standard for 20 MHz channels. When using ``YansWifiPhy``, there are no
+non-Wi-Fi signals, so it is unlikely that this attribute would play much of a
+role in Yans wifi models if left at the default value, but if there is a strong
 Wi-Fi signal that is not otherwise being received by the model, it has
 the possibility to raise the CCA_BUSY while the overall energy exceeds
 this threshold.
@@ -395,7 +397,7 @@ threshold.
 The basic operation of probability of error calculations is shown in Figure
 :ref:`snir`.  Packets are represented as bits (not symbols) in the |ns3|
 model, and the InterferenceHelper breaks the packet into one or more
-"chunks" each with a different signal to noise (and interference) ratio
+"chunks", each with a different signal to noise (and interference) ratio
 (SNIR).  Each chunk is separately evaluated by asking for the probability
 of error for a given number of bits from the error model in use.  The
 InterferenceHelper builds an aggregate "probability of error" value
@@ -438,8 +440,7 @@ hard-decision of punctured codes, the coded BER is calculated using
 Chernoff bounds.
 
 The 802.11b model was split from the OFDM model when the NIST error rate
-model was added, into a new model called DsssErrorRateModel.  The current
-behavior is that users may 
+model was added, into a new model called DsssErrorRateModel.
 
 Furthermore, the 5.5 Mbps and 11 Mbps models for 802.11b rely on library
 methods implemented in the GNU Scientific Library (GSL).  The Waf build
@@ -451,7 +452,7 @@ As a result, there are three error models:
 
 #. ``ns3::DsssErrorRateModel``:  contains models for 802.11b modes.  The
    802.11b 1 Mbps and 2 Mbps error models are based on classical modulation
-   analysis.  If GNU GSL is installed, the 5.5 Mbps and 11 Mbps from 
+   analysis.  If GSL is installed, the 5.5 Mbps and 11 Mbps from
    [pursley2009]_ are used; otherwise, a backup Matlab model is used.
 #. ``ns3::NistErrorRateModel``: is the default for OFDM modes and reuses
    ``ns3::DsssErrorRateModel`` for 802.11b modes. 
@@ -533,7 +534,7 @@ The MAC model
 Infrastructure association
 ##########################
 
-Association in infrastructure (IBSS) mode is a high-level MAC function.
+Association in infrastructure mode is a high-level MAC function.
 Either active probing or passive scanning is used (default is passive scan).
 At the start of the simulation, Wi-Fi network devices configured as
 STA will attempt to scan the channel. Depends on whether passive or active
@@ -578,9 +579,28 @@ where the backoff timer duration is lazily calculated whenever needed since it
 is claimed to have much better performance than the simpler recurring timer
 solution.
 
-The backoff procedure of DCF is described in section 9.2.5.2 of [ieee80211]_.
+The DCF basic access is described in section 10.3.4.2 of [ieee80211-2016]_.
 
-*  “The backoff procedure shall be invoked for a STA to transfer a frame 
+*  “A STA may transmit an MPDU when it is operating under the DCF access method
+   [..] when the STA determines that the medium is idle when a frame is queued
+   for transmission, and remains idle for a period of a DIFS, or an EIFS
+   (10.3.2.3.7) from the end of the immediately preceding medium-busy event,
+   whichever is the greater, and the backoff timer is zero. Otherwise the random
+   backoff procedure described in 10.3.4.3 shall be followed."
+
+Thus, a station is allowed not to invoke the backoff procedure if all of the
+following conditions are met:
+
+*  the medium is idle when a frame is queued for transmission
+*  the medium remains idle until the most recent of these two events: a DIFS
+   from the time when the frame is queued for transmission; an EIFS from the
+   end of the immediately preceding medium-busy event (associated with the
+   reception of an erroneous frame)
+*  the backoff timer is zero
+
+The backoff procedure of DCF is described in section 10.3.4.3 of [ieee80211-2016]_.
+
+*  “A STA shall invoke the backoff procedure to transfer a frame
    when finding the medium busy as indicated by either the physical or 
    virtual CS mechanism.”
 *  “A backoff procedure shall be performed immediately after the end of 
@@ -588,19 +608,43 @@ The backoff procedure of DCF is described in section 9.2.5.2 of [ieee80211]_.
    type Data, Management, or Control with subtype PS-Poll, even if no 
    additional transmissions are currently queued.”
 
-Thus, if the queue is empty, a newly arrived packet should be transmitted 
-immediately after channel is sensed idle for DIFS.  If queue is not empty 
-and after a successful MPDU that has no more fragments, a node should 
-also start the backoff timer.
+The EDCA backoff procedure is slightly different than the DCF backoff procedure
+and is described in section 10.22.2.2 of [ieee80211-2016]_. The backoff procedure
+shall be invoked by an EDCAF when any of the following events occur:
 
-Some users have observed that the 802.11 MAC with an empty queue on an 
-idle channel will transmit the first frame arriving to the model 
-immediately without waiting for DIFS or backoff, and wonder whether this 
-is compliant.  According to the standard, “The backoff procedure shall 
-be invoked for a STA to transfer a frame when finding the medium busy 
-as indicated by either the physical or virtual CS mechanism.”  So in 
-this case, the medium is not found to be busy in recent past and the 
-station can transmit immediately. 
+*  a frame is "queued for transmission such that one of the transmit queues
+   associated with that AC has now become non-empty and any other transmit queues
+   associated with that AC are empty; the medium is busy on the primary channel"
+*  "The transmission of the MPDU in the final PPDU transmitted by the TXOP holder
+   during the TXOP for that AC has completed and the TXNAV timer has expired, and
+   the AC was a primary AC"
+*  "The transmission of an MPDU in the initial PPDU of a TXOP fails [..] and the
+   AC was a primary AC"
+*  "The transmission attempt collides internally with another EDCAF of an AC that
+   has higher priority"
+*  (optionally) "The transmission by the TXOP holder of an MPDU in a non-initial
+   PPDU of a TXOP fails"
+
+Additionally, section 10.22.2.4 of [ieee80211-2016]_ introduces the notion of
+slot boundary, which basically occurs following SIFS + AIFSN * slotTime of idle
+medium after the last busy medium that was the result of a reception of a frame
+with a correct FCS or following EIFS - DIFS + AIFSN * slotTime + SIFS of idle
+medium after the last indicated busy medium that was the result of a frame reception
+that has resulted in FCS error, or following a slotTime of idle medium occurring
+immediately after any of these conditions.
+
+On these specific slot boundaries, each EDCAF shall make a determination to perform
+one and only one of the following functions:
+
+*  Decrement the backoff timer.
+*  Initiate the transmission of a frame exchange sequence.
+*  Invoke the backoff procedure due to an internal collision.
+*  Do nothing.
+
+Thus, if an EDCAF decrements its backoff timer on a given slot boundary and, as
+a result, the backoff timer has a zero value, the EDCAF cannot immediately
+transmit, but it has to wait for another slotTime of idle medium before transmission
+can start.
 
 The higher-level MAC functions are implemented in a set of other C++ classes and
 deal with:
@@ -664,7 +708,7 @@ is used for RTS frames only.  The rate of CTS and ACK frames are
 selected according to the 802.11 standard.  However, users can still
 manually add WifiMode to the basic rate set that will allow control
 response frames to be sent at other rates.  Please consult the
-`project wiki <http://www.nsnam.org/wiki>`_ on how to do this.
+`project wiki <https://www.nsnam.org/wiki/HOWTO_add_basic_rates_to_802.11>`_ on how to do this.
 
 Available attributes:
 
@@ -709,6 +753,39 @@ The goal of the lookaround rate is to force minstrel to try higher rate than the
 
 For a more detailed information about minstrel, see [linuxminstrel]_.
 
+Ack policy selection
+####################
+
+Since the introduction of the IEEE 802.11e amendment, multiple acknowledgment policies
+are available, which are coded in the Ack Policy subfield in the QoS Control field of
+QoS Data frames (see Section 9.2.4.5.4 of the IEEE 802.11-2016 standard). For instance,
+an A-MPDU can be sent with the *Normal Ack or Implicit Block Ack Request* policy, in which
+case the receiver replies with a Normal Ack or a Block Ack depending on whether the A-MPDU
+contains a single MPDU or multiple MPDUs, or with the *Block Ack* policy, in which case
+the receiver waits to receive a Block Ack Request in the future to which it replies with
+a Block Ack.
+
+``WifiAckPolicySelector`` is the abstract base class introduced to provide an interface
+for multiple ack policy selectors. Currently, the default ack policy selector is
+the ``ConstantWifiAckPolicySelector``.
+
+ConstantWifiAckPolicySelector
+#############################
+
+The ``ConstantWifiAckPolicySelector`` allows to determine which acknowledgment policy
+to use depending on the value of its attributes:
+
+* UseExplicitBar: used to determine the ack policy to use when a response is needed from
+  the recipient and the current transmission includes multiple frames (A-MPDU) or there are
+  frames transmitted previously for which an acknowledgment is needed. If this attribute is
+  true, the *Block Ack* policy is used. Otherwise, the *Implicit Block Ack Request* policy is used.
+* BaThreshold: used to determine when the originator of a Block Ack agreement needs to
+  request a response from the recipient. A value of zero means that a response is requested
+  at every frame transmission. Otherwise, a non-zero value (less than or equal to 1) means
+  that a response is requested upon transmission of a frame whose sequence number is distant
+  at least BaThreshold multiplied by the transmit window size from the starting sequence
+  number of the transmit window.
+
 802.11ax OBSS PD spatial reuse
 ##############################
 
@@ -733,12 +810,12 @@ a reduced power. Otherwise, no TX power restrictions will be applied.
 Constant OBSS PD Algorithm
 ##########################
 
-Constant OBSS PD algorithm is a simple OBSS PD algorithm implemmented in the ``ConstantObssPdAlgorithm`` class.
+Constant OBSS PD algorithm is a simple OBSS PD algorithm implemented in the ``ConstantObssPdAlgorithm`` class.
 
 Once a HE preamble and its header have been received by the PHY, ``ConstantObssPdAlgorithm::
 ReceiveHeSig`` is triggered.
 The algorithm then checks whether this is an OBSS frame by comparing its own BSS color with the BSS color of the received preamble.
-If this is an OBSS frame, it compare the received RSSI with its configured OBSS PD level value. The PHY then gets reset to IDLE
+If this is an OBSS frame, it compares the received RSSI with its configured OBSS PD level value. The PHY then gets reset to IDLE
 state in case the received RSSI is lower than that constant OBSS PD level value, and is informed about a TX power restrictions.
 
 Note: since our model is based on a single threshold, the PHY only supports one restricted power level.
@@ -758,7 +835,7 @@ Depending on your goal, the common tasks are (in no particular order):
 * MAC high modification. For example, handling new management frames (think beacon/probe), 
   beacon/probe generation.  Users usually make changes to ``regular-wifi-mac.*``, 
   ``infrastructure-wifi-mac.*``,``sta-wifi-mac.*``, ``ap-wifi-mac.*``, or ``adhoc-wifi-mac.*`` to accomplish this.
-* Wi-Fi queue management.  The files ``txop.*`` and ``qos-txop.*`` are of interested for this task.
+* Wi-Fi queue management.  The files ``txop.*`` and ``qos-txop.*`` are of interest for this task.
 * Channel access management.  Users should modify the files ``channel-access-manager.*``, which grant access to
   ``Txop`` and ``QosTxop``.
 * Fragmentation and RTS threholds are handled by Wi-Fi remote station manager.  Note that Wi-Fi remote

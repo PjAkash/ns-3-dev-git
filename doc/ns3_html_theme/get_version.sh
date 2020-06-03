@@ -140,7 +140,7 @@ outf="doc/ns3_html_theme/static/ns3_version.js"
 # 'git describe HEAD --tags' will return a string such as either
 # 'ns-3.29-159-xxx' (if we are at a distance from the last release tag) or
 # 'ns-3.29' if we are at the tag.
-distance=`git describe HEAD --tags | cut -c 9- | cut -d '-' -f 1`
+distance=`git describe HEAD --tags | cut -d '-' -f 3- | cut -d '-' -f 1`
 
 if [ $distance -eq 1 ]; then
     version=`git describe HEAD --tags | cut -d '-' -f 2`
@@ -152,7 +152,7 @@ elif [ $tag -eq 1 ]; then
     vers_href=
 
 else
-    version=`git describe HEAD --tags | cut -c 9- | cut -d '-' -f 2 | cut -c 2-`
+    version=`git describe HEAD --tags | cut -d '-' -f 3- | cut -d '-' -f 2 | cut -c 2-`
     # Check for uncommitted changes
     changes=0
     if [ "$(git status --porcelain)" ]; then
@@ -205,7 +205,7 @@ fi
 # This seems not always done automatically
 # by Sphinx when rebuilding
 cd doc 2>&1 >/dev/null
-for d in {manual,models,tutorial{,-pt-br}}/build/{single,}html/_static/ ; do
+for d in {manual,models,tutorial/build/{single,}html/_static/ ; do
     if [ ! -d $d ]; then
 	mkdir -p $d
     fi

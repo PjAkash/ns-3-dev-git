@@ -33,7 +33,7 @@ class WifiNetDevice;
 
 /**
  * \brief OBSS PD algorithm interface
- * \ingroup wifi-he
+ * \ingroup wifi
  *
  * This object provides the interface for all OBSS_PD algorithms
  * and is designed to be subclassed.
@@ -45,6 +45,10 @@ class WifiNetDevice;
 class ObssPdAlgorithm : public Object
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
 
   /**
@@ -82,15 +86,18 @@ protected:
   virtual void DoDispose (void);
 
   Ptr<WifiNetDevice> m_device; ///< Pointer to the WifiNetDevice
-  double m_obssPdLevel;        ///< Current OBSS PD level
+  double m_obssPdLevel;        ///< Current OBSS PD level (dBm)
 
 
 private:
-  double m_obssPdLevelMin; ///< Minimum OBSS PD level
-  double m_obssPdLevelMax; ///< Maximum OBSS PD level
-  double m_txPowerRefSiso; ///< SISO reference TX power level
-  double m_txPowerRefMimo; ///< MIMO reference TX power level
+  double m_obssPdLevelMin; ///< Minimum OBSS PD level (dBm)
+  double m_obssPdLevelMax; ///< Maximum OBSS PD level (dBm)
+  double m_txPowerRefSiso; ///< SISO reference TX power level (dBm)
+  double m_txPowerRefMimo; ///< MIMO reference TX power level (dBm)
 
+  /**
+   * TracedCallback signature for PHY reset events.
+   */
   TracedCallback<uint8_t, double, bool, double, double>  m_resetEvent;
 };
 

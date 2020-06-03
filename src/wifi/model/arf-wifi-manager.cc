@@ -133,13 +133,13 @@ ArfWifiManager::DoReportRtsFailed (WifiRemoteStation *station)
  * The fundamental reason for this is that there is a backoff between each data
  * transmission, be it an initial transmission or a retransmission.
  *
- * \param st the station that we failed to send DATA
+ * \param st the station that we failed to send Data
  */
 void
 ArfWifiManager::DoReportDataFailed (WifiRemoteStation *st)
 {
   NS_LOG_FUNCTION (this << st);
-  ArfWifiRemoteStation *station = (ArfWifiRemoteStation *)st;
+  ArfWifiRemoteStation *station = static_cast<ArfWifiRemoteStation*> (st);
   station->m_timer++;
   station->m_failed++;
   station->m_success = 0;
@@ -193,7 +193,7 @@ void ArfWifiManager::DoReportDataOk (WifiRemoteStation *st,
                                      double ackSnr, WifiMode ackMode, double dataSnr)
 {
   NS_LOG_FUNCTION (this << st << ackSnr << ackMode << dataSnr);
-  ArfWifiRemoteStation *station = (ArfWifiRemoteStation *) st;
+  ArfWifiRemoteStation *station = static_cast<ArfWifiRemoteStation*> (st);
   station->m_timer++;
   station->m_success++;
   station->m_failed = 0;
@@ -227,11 +227,10 @@ WifiTxVector
 ArfWifiManager::DoGetDataTxVector (WifiRemoteStation *st)
 {
   NS_LOG_FUNCTION (this << st);
-  ArfWifiRemoteStation *station = (ArfWifiRemoteStation *) st;
+  ArfWifiRemoteStation *station = static_cast<ArfWifiRemoteStation*> (st);
   uint16_t channelWidth = GetChannelWidth (station);
   if (channelWidth > 20 && channelWidth != 22)
     {
-      //avoid to use legacy rate adaptation algorithms for IEEE 802.11n/ac
       channelWidth = 20;
     }
   WifiMode mode = GetSupported (station, station->m_rate);
@@ -247,13 +246,12 @@ WifiTxVector
 ArfWifiManager::DoGetRtsTxVector (WifiRemoteStation *st)
 {
   NS_LOG_FUNCTION (this << st);
-  /// \todo we could/should implement the Arf algorithm for
+  /// \todo we could/should implement the ARF algorithm for
   /// RTS only by picking a single rate within the BasicRateSet.
-  ArfWifiRemoteStation *station = (ArfWifiRemoteStation *) st;
+  ArfWifiRemoteStation *station = static_cast<ArfWifiRemoteStation*> (st);
   uint16_t channelWidth = GetChannelWidth (station);
   if (channelWidth > 20 && channelWidth != 22)
     {
-      //avoid to use legacy rate adaptation algorithms for IEEE 802.11n/ac
       channelWidth = 20;
     }
   WifiTxVector rtsTxVector;

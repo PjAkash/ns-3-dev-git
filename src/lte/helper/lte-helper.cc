@@ -709,9 +709,9 @@ LteHelper::InstallSingleEnbDevice (Ptr<Node> n)
       ccPhy->GetDlSpectrumPhy ()->SetDevice (dev);
       ccPhy->GetUlSpectrumPhy ()->SetLtePhyRxDataEndOkCallback (MakeCallback (&LteEnbPhy::PhyPduReceived, ccPhy));
       ccPhy->GetUlSpectrumPhy ()->SetLtePhyRxCtrlEndOkCallback (MakeCallback (&LteEnbPhy::ReceiveLteControlMessageList, ccPhy));
-      ccPhy->GetUlSpectrumPhy ()->SetLtePhyUlHarqFeedbackCallback (MakeCallback (&LteEnbPhy::ReceiveLteUlHarqFeedback, ccPhy));
+      ccPhy->GetUlSpectrumPhy ()->SetLtePhyUlHarqFeedbackCallback (MakeCallback (&LteEnbPhy::ReportUlHarqFeedback, ccPhy));
       NS_LOG_LOGIC ("set the propagation model frequencies");
-      double dlFreq = LteSpectrumValueHelper::GetCarrierFrequency (it->second->m_dlEarfcn);
+      double dlFreq = LteSpectrumValueHelper::GetCarrierFrequency (it->second->GetDlEarfcn ());
       NS_LOG_LOGIC ("DL freq: " << dlFreq);
       bool dlFreqOk = m_downlinkPathlossModel->SetAttributeFailSafe ("Frequency", DoubleValue (dlFreq));
       if (!dlFreqOk)
@@ -719,7 +719,7 @@ LteHelper::InstallSingleEnbDevice (Ptr<Node> n)
           NS_LOG_WARN ("DL propagation model does not have a Frequency attribute");
         }
 
-      double ulFreq = LteSpectrumValueHelper::GetCarrierFrequency (it->second->m_ulEarfcn);
+      double ulFreq = LteSpectrumValueHelper::GetCarrierFrequency (it->second->GetUlEarfcn ());
 
       NS_LOG_LOGIC ("UL freq: " << ulFreq);
       bool ulFreqOk = m_uplinkPathlossModel->SetAttributeFailSafe ("Frequency", DoubleValue (ulFreq));
@@ -937,7 +937,7 @@ LteHelper::InstallSingleUeDevice (Ptr<Node> n)
       ccPhy->GetDlSpectrumPhy ()->SetLtePhyRxDataEndOkCallback (MakeCallback (&LteUePhy::PhyPduReceived, ccPhy));
       ccPhy->GetDlSpectrumPhy ()->SetLtePhyRxCtrlEndOkCallback (MakeCallback (&LteUePhy::ReceiveLteControlMessageList, ccPhy));
       ccPhy->GetDlSpectrumPhy ()->SetLtePhyRxPssCallback (MakeCallback (&LteUePhy::ReceivePss, ccPhy));
-      ccPhy->GetDlSpectrumPhy ()->SetLtePhyDlHarqFeedbackCallback (MakeCallback (&LteUePhy::ReceiveLteDlHarqFeedback, ccPhy));
+      ccPhy->GetDlSpectrumPhy ()->SetLtePhyDlHarqFeedbackCallback (MakeCallback (&LteUePhy::EnqueueDlHarqFeedback, ccPhy));
     }
 
   nas->SetDevice (dev);
@@ -1295,7 +1295,7 @@ LteHelper::DoDeActivateDedicatedEpsBearer (Ptr<NetDevice> ueDevice, Ptr<NetDevic
 }
 
 void
-LteHelper::DoComponentCarrierConfigure (uint32_t ulEarfcn, uint32_t dlEarfcn, uint8_t ulbw, uint8_t dlbw)
+LteHelper::DoComponentCarrierConfigure (uint32_t ulEarfcn, uint32_t dlEarfcn, uint16_t ulbw, uint16_t dlbw)
 {
   NS_LOG_FUNCTION (this << ulEarfcn << dlEarfcn << ulbw << dlbw);
 

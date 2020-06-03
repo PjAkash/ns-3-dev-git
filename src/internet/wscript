@@ -103,8 +103,8 @@ def configure(conf):
 
 
 def build(bld):
-    # bridge and mpi dependencies are due to global routing
-    obj = bld.create_ns3_module('internet', ['bridge', 'mpi', 'traffic-control', 'network', 'core'])
+    # bridge dependency is due to global routing
+    obj = bld.create_ns3_module('internet', ['bridge', 'traffic-control', 'network', 'core'])
     obj.source = [
         'model/ip-l4-protocol.cc',
         'model/udp-header.cc',
@@ -160,6 +160,7 @@ def build(bld):
         'model/tcp-illinois.cc',
         'model/tcp-htcp.cc',
         'model/tcp-lp.cc',
+        'model/tcp-dctcp.cc',
         'model/tcp-rx-buffer.cc',
         'model/tcp-tx-buffer.cc',
         'model/tcp-tx-item.cc',
@@ -250,6 +251,7 @@ def build(bld):
         'test/ipv6-packet-info-tag-test-suite.cc',
         'test/ipv6-test.cc',
         'test/ipv6-raw-test.cc',
+        'test/ipv6-address-duplication-test.cc',
         'test/tcp-test.cc',
         'test/tcp-timestamp-test.cc',
         'test/tcp-sack-permitted-test.cc',
@@ -297,6 +299,8 @@ def build(bld):
         'test/ipv4-rip-test.cc',
         'test/tcp-close-test.cc',
         'test/icmp-test.cc',
+        'test/ipv4-deduplication-test.cc',
+        'test/tcp-dctcp-test.cc',
         ]
     privateheaders = bld(features='ns3privateheader')
     privateheaders.module = 'internet'
@@ -401,6 +405,7 @@ def build(bld):
         'model/tcp-illinois.h',
         'model/tcp-htcp.h',
         'model/tcp-lp.h',
+        'model/tcp-dctcp.h',
         'model/tcp-ledbat.h',
         'model/tcp-socket-base.h',
         'model/tcp-socket-state.h',

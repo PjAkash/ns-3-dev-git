@@ -53,17 +53,16 @@
 // - station C enables A-MSDU (with maximum size of 8 kB) but disables A-MPDU;
 // - station D uses two-level aggregation (A-MPDU with maximum size of 32 kB and A-MSDU with maximum size of 4 kB).
 //
-// Packets in this simulation aren't marked with a QosTag so they
-// are considered belonging to BestEffort Access Class (AC_BE).
+//Packets in this simulation belong to BestEffort Access Class (AC_BE).
 //
 // The user can select the distance between the stations and the APs and can enable/disable the RTS/CTS mechanism.
 // Example: ./waf --run "wifi-aggregation --distance=10 --enableRts=0 --simulationTime=20"
 //
 // The output prints the throughput measured for the 4 cases/networks described above. When default aggregation parameters are enabled, the
-// maximum A-MPDU size is 65 kB and the throughput is maximal. When aggregation is disabled, the throughput is about the half of the
-// physical bitrate as in legacy wifi networks. When only A-MSDU is enabled, the throughput is increased but is not maximal, since the maximum
-// A-MSDU size is limited to 7935 bytes (whereas the maximum A-MPDU size is limited to 65535 bytes). When A-MSDU and A-MPDU are both enabled
-// (= two-level aggregation), the throughput is slightly smaller than the first scenario since we set a smaller maximum A-MPDU size.
+// maximum A-MPDU size is 65 kB and the throughput is maximal. When aggregation is disabled, the throughput is about the half of the physical
+// bitrate. When only A-MSDU is enabled, the throughput is increased but is not maximal, since the maximum A-MSDU size is limited to 7935 bytes
+// (whereas the maximum A-MPDU size is limited to 65535 bytes). When A-MSDU and A-MPDU are both enabled (= two-level aggregation),
+// the throughput is slightly smaller than the first scenario since we set a smaller maximum A-MPDU size.
 //
 // When the distance is increased, the frame error rate gets higher, and the output shows how it affects the throughput for the 4 networks.
 // Even through A-MSDU has less overheads than A-MPDU, A-MSDU is less robust against transmission errors than A-MPDU. When the distance is
@@ -82,7 +81,7 @@ int main (int argc, char *argv[])
   bool enablePcap = 0;
   bool verifyResults = 0; //used for regression
 
-  CommandLine cmd;
+  CommandLine cmd (__FILE__);
   cmd.AddValue ("payloadSize", "Payload size in bytes", payloadSize);
   cmd.AddValue ("enableRts", "Enable or disable RTS/CTS", enableRts);
   cmd.AddValue ("simulationTime", "Simulation time in seconds", simulationTime);

@@ -84,7 +84,7 @@ IdealWifiManager::SetupPhy (const Ptr<WifiPhy> phy)
 }
 
 uint16_t
-IdealWifiManager::GetChannelWidthForMode (WifiMode mode) const
+IdealWifiManager::GetChannelWidthForNonHtMode (WifiMode mode) const
 {
   NS_ASSERT (mode.GetModulationClass () != WIFI_MOD_CLASS_HT
              && mode.GetModulationClass () != WIFI_MOD_CLASS_VHT
@@ -111,14 +111,14 @@ IdealWifiManager::DoInitialize ()
   for (uint8_t i = 0; i < nModes; i++)
     {
       mode = GetPhy ()->GetMode (i);
-      txVector.SetChannelWidth (GetChannelWidthForMode (mode));
+      txVector.SetChannelWidth (GetChannelWidthForNonHtMode (mode));
       txVector.SetNss (nss);
       txVector.SetMode (mode);
       NS_LOG_DEBUG ("Initialize, adding mode = " << mode.GetUniqueName ());
       AddSnrThreshold (txVector, GetPhy ()->CalculateSnr (txVector, m_ber));
     }
-  // Add all HT, VHT and HE MCSes
-  if (GetHtSupported () || GetVhtSupported () || GetHeSupported ())
+  // Add all MCSes
+  if (GetHtSupported ())
     {
       nModes = GetPhy ()->GetNMcs ();
       for (uint8_t i = 0; i < nModes; i++)
@@ -206,7 +206,7 @@ IdealWifiManager::GetSnrThreshold (WifiTxVector txVector) const
 void
 IdealWifiManager::AddSnrThreshold (WifiTxVector txVector, double snr)
 {
-  NS_LOG_FUNCTION (this << txVector.GetMode ().GetUniqueName () << snr);
+  NS_LOG_FUNCTION (this << txVector.GetMode ().GetUniqueName () << txVector.GetChannelWidth () << snr);
   m_thresholds.push_back (std::make_pair (snr, txVector));
 }
 
@@ -215,13 +215,20 @@ IdealWifiManager::DoCreateStation (void) const
 {
   NS_LOG_FUNCTION (this);
   IdealWifiRemoteStation *station = new IdealWifiRemoteStation ();
-  station->m_lastSnrObserved = 0.0;
-  station->m_lastSnrCached = CACHE_INITIAL_VALUE;
-  station->m_lastMode = GetDefaultMode ();
-  station->m_nss = 1;
+  Reset (station);
   return station;
 }
 
+void
+IdealWifiManager::Reset (WifiRemoteStation *station) const
+{
+  NS_LOG_FUNCTION (this << station);
+  IdealWifiRemoteStation *st = static_cast<IdealWifiRemoteStation*> (station);
+  st->m_lastSnrObserved = 0.0;
+  st->m_lastSnrCached = CACHE_INITIAL_VALUE;
+  st->m_lastMode = GetDefaultMode ();
+  st->m_nss = 1;
+}
 
 void
 IdealWifiManager::DoReportRxOk (WifiRemoteStation *station, double rxSnr, WifiMode txMode)
@@ -246,7 +253,7 @@ IdealWifiManager::DoReportRtsOk (WifiRemoteStation *st,
                                  double ctsSnr, WifiMode ctsMode, double rtsSnr)
 {
   NS_LOG_FUNCTION (this << st << ctsSnr << ctsMode.GetUniqueName () << rtsSnr);
-  IdealWifiRemoteStation *station = (IdealWifiRemoteStation *)st;
+  IdealWifiRemoteStation *station = static_cast<IdealWifiRemoteStation*> (st);
   station->m_lastSnrObserved = rtsSnr;
 }
 
@@ -255,7 +262,7 @@ IdealWifiManager::DoReportDataOk (WifiRemoteStation *st,
                                   double ackSnr, WifiMode ackMode, double dataSnr)
 {
   NS_LOG_FUNCTION (this << st << ackSnr << ackMode.GetUniqueName () << dataSnr);
-  IdealWifiRemoteStation *station = (IdealWifiRemoteStation *)st;
+  IdealWifiRemoteStation *station = static_cast<IdealWifiRemoteStation*> (st);
   if (dataSnr == 0)
     {
       NS_LOG_WARN ("DataSnr reported to be zero; not saving this report.");
@@ -268,7 +275,7 @@ void
 IdealWifiManager::DoReportAmpduTxStatus (WifiRemoteStation *st, uint8_t nSuccessfulMpdus, uint8_t nFailedMpdus, double rxSnr, double dataSnr)
 {
   NS_LOG_FUNCTION (this << st << +nSuccessfulMpdus << +nFailedMpdus << rxSnr << dataSnr);
-  IdealWifiRemoteStation *station = (IdealWifiRemoteStation *)st;
+  IdealWifiRemoteStation *station = static_cast<IdealWifiRemoteStation*> (st);
   if (dataSnr == 0)
     {
       NS_LOG_WARN ("DataSnr reported to be zero; not saving this report.");
@@ -277,26 +284,27 @@ IdealWifiManager::DoReportAmpduTxStatus (WifiRemoteStation *st, uint8_t nSuccess
   station->m_lastSnrObserved = dataSnr;
 }
 
-
 void
 IdealWifiManager::DoReportFinalRtsFailed (WifiRemoteStation *station)
 {
   NS_LOG_FUNCTION (this << station);
+  Reset (station);
 }
 
 void
 IdealWifiManager::DoReportFinalDataFailed (WifiRemoteStation *station)
 {
   NS_LOG_FUNCTION (this << station);
+  Reset (station);
 }
 
 WifiTxVector
 IdealWifiManager::DoGetDataTxVector (WifiRemoteStation *st)
 {
   NS_LOG_FUNCTION (this << st);
-  IdealWifiRemoteStation *station = (IdealWifiRemoteStation *)st;
+  IdealWifiRemoteStation *station = static_cast<IdealWifiRemoteStation*> (st);
   //We search within the Supported rate set the mode with the
-  //highest data rate for which the snr threshold is smaller than m_lastSnr
+  //highest data rate for which the SNR threshold is smaller than m_lastSnr
   //to ensure correct packet delivery.
   WifiMode maxMode = GetDefaultMode ();
   WifiTxVector txVector;
@@ -319,8 +327,7 @@ IdealWifiManager::DoGetDataTxVector (WifiRemoteStation *st)
     }
   else
     {
-      if ((GetHtSupported () || GetVhtSupported () || GetHeSupported ())
-          && (GetHtSupported (st) || GetVhtSupported (st) || GetHeSupported (st)))
+      if (GetHtSupported () && GetHtSupported (st))
         {
           for (uint8_t i = 0; i < GetNMcsSupported (station); i++)
             {
@@ -464,7 +471,7 @@ IdealWifiManager::DoGetDataTxVector (WifiRemoteStation *st)
               mode = GetSupported (station, i);
               txVector.SetMode (mode);
               txVector.SetNss (selectedNss);
-              txVector.SetChannelWidth (GetChannelWidthForMode (mode));
+              txVector.SetChannelWidth (GetChannelWidthForNonHtMode (mode));
               double threshold = GetSnrThreshold (txVector);
               uint64_t dataRate = mode.GetDataRate (txVector.GetChannelWidth (), txVector.GetGuardInterval (), txVector.GetNss ());
               NS_LOG_DEBUG ("mode = " << mode.GetUniqueName () <<
@@ -513,23 +520,22 @@ WifiTxVector
 IdealWifiManager::DoGetRtsTxVector (WifiRemoteStation *st)
 {
   NS_LOG_FUNCTION (this << st);
-  IdealWifiRemoteStation *station = (IdealWifiRemoteStation *)st;
+  IdealWifiRemoteStation *station = static_cast<IdealWifiRemoteStation*> (st);
   //We search within the Basic rate set the mode with the highest
-  //snr threshold possible which is smaller than m_lastSnr to
+  //SNR threshold possible which is smaller than m_lastSnr to
   //ensure correct packet delivery.
   double maxThreshold = 0.0;
   WifiTxVector txVector;
   WifiMode mode;
   uint8_t nss = 1;
   WifiMode maxMode = GetDefaultMode ();
-  //avoid to use legacy rate adaptation algorithms for IEEE 802.11n/ac/ax
-  //RTS is sent in a legacy frame; RTS with HT/VHT/HE is not yet supported
+  //RTS is sent in a non-HT frame
   for (uint8_t i = 0; i < GetNBasicModes (); i++)
     {
       mode = GetBasicMode (i);
       txVector.SetMode (mode);
       txVector.SetNss (nss);
-      txVector.SetChannelWidth (GetChannelWidthForMode (mode));
+      txVector.SetChannelWidth (GetChannelWidthForNonHtMode (mode));
       double threshold = GetSnrThreshold (txVector);
       if (threshold > maxThreshold && threshold < station->m_lastSnrObserved)
         {
@@ -537,7 +543,7 @@ IdealWifiManager::DoGetRtsTxVector (WifiRemoteStation *st)
           maxMode = mode;
         }
     }
-  return WifiTxVector (maxMode, GetDefaultTxPowerLevel (), GetPreambleForTransmission (maxMode.GetModulationClass (), GetShortPreambleEnabled (), UseGreenfieldForDestination (GetAddress (station))), 800, GetNumberOfAntennas (), nss, 0, GetChannelWidthForMode (maxMode), GetAggregation (station), false);
+  return WifiTxVector (maxMode, GetDefaultTxPowerLevel (), GetPreambleForTransmission (maxMode.GetModulationClass (), GetShortPreambleEnabled (), UseGreenfieldForDestination (GetAddress (station))), 800, GetNumberOfAntennas (), nss, 0, GetChannelWidthForNonHtMode (maxMode), GetAggregation (station), false);
 }
 
 bool

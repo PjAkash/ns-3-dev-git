@@ -17,7 +17,6 @@
  *
  */
 #include "tcp-congestion-ops.h"
-#include "tcp-socket-base.h"
 #include "ns3/log.h"
 
 namespace ns3 {
@@ -249,6 +248,14 @@ TcpNewReno::GetSsThresh (Ptr<const TcpSocketState> state,
   NS_LOG_FUNCTION (this << state << bytesInFlight);
 
   return std::max (2 * state->m_segmentSize, bytesInFlight / 2);
+}
+
+void
+TcpNewReno::ReduceCwnd (Ptr<TcpSocketState> tcb)
+{
+  NS_LOG_FUNCTION (this << tcb);
+
+  tcb->m_cWnd = std::max (tcb->m_cWnd.Get () / 2, tcb->m_segmentSize);
 }
 
 Ptr<TcpCongestionOps>
